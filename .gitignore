@@ -1,0 +1,31 @@
+#OS X
+.DS_Store
+
+#vim
+*.swp
+
+#emacs
+*~
+
+#previous versions of files
+*.bak
+
+#config
+address_reuse.cfg
+
+#sqlite db
+*.db
+*.db-temp
+*.*-journal
+
+#compiled python files
+*.pyc
+
+#IDE project files
+.idea
+
+#temporary generated HTML files
+*.html
+
+#log files
+*.log
