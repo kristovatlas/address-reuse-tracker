@@ -75,4 +75,4 @@ Kristov Atlas (email: firstname @ openbitcoinprivacyproject.org)
 
 ## Acknowledgments
 
-Thanks to LaurentMT, Jameson Lopp, and Justus Ranvier for their input.
+Thanks to @LaurentMT, @jlopp, and @justusranvier for their input.
