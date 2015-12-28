@@ -9,6 +9,10 @@ Maintains stats on address reuse in Bitcoin network, displays charts
 * SQLite version 3.7.11 or higher, due to the use of [inserting multiple rows without `SELECT` and `UNION` clauses](http://stackoverflow.com/questions/1609637/is-it-possible-to-insert-multiple-rows-at-a-time-in-an-sqlite-database).
 * Python 2. Will update to 3 soon!
 
+## Hardware requirements
+
+This stores a lot of data per transaction. Processing just the first 200k blocks requires 140GB of disk space.
+
 ## Choosing a data source
 
 This tool collects two types of information:
