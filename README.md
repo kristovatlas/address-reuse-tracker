@@ -7,6 +7,7 @@ Maintains stats on address reuse in Bitcoin network, displays charts
 * GChartWrapper. `easy_install -U GChartWrapper`
 * [bitcoinrpc](https://github.com/jgarzik/python-bitcoinrpc) `[sudo] python setup.py install`
 * SQLite version 3.7.11 or higher, due to the use of [inserting multiple rows without `SELECT` and `UNION` clauses](http://stackoverflow.com/questions/1609637/is-it-possible-to-insert-multiple-rows-at-a-time-in-an-sqlite-database).
+* Python 2. Will update to 3 soon!
 
 ## Choosing a data source
 
