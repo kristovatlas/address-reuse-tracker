@@ -47,10 +47,12 @@ The tool can be used to populate the database based on blockchain analysis and r
 
 If you want to use only the remote API calls, run: `python update_using_remote_api.py`.
 
-If you want to bitcoind's local copy of the blockchain, you will need to process things in two stages:
+If you want to bitcoind's local copy of the blockchain, you will need to process things in several stages:
 
-1. Run `python update_using_local_blockchain.py`.
-2. Run `python update_deferred_blame_records.py`.
+1. Run `python update_relayed_by_cache.py`.
+2. Run `python update_txout_cache.py`. (Can be run at the same time as `update_relayed_by_cache.py`.)
+3. Run `python update_using_local_blockchain.py`.
+4. Run `python update_deferred_blame_records.py`.
 
 ### Generating visualizations
 
