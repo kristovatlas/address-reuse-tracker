@@ -16,11 +16,7 @@ import validate
 import tx_blame
 import db
 import custom_errors
-#import memory_cache #deprecated
 import data_subscription
-
-#TODO: for debugging only
-import time_debug
 
 ####################
 # EXTERNAL IMPORTS #
@@ -40,9 +36,6 @@ import decimal #to help json parser
 #Flag determines whether to consult SQL db for cached transaction output
 #   addresses before querying bitcoind via RPC interface.
 USE_TX_OUTPUT_ADDR_CACHE_FIRST = True
-
-#Flag determines use of the memory_cache.TransactionOutputCache class.
-#USE_MEMORY_CACHING_FOR_OUTPUT_ADDRESS_LOOKUPS = False #deprecated
 
 ENABLE_DEBUG_PRINT = True
 
@@ -382,12 +375,7 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
                                     self.config.RPC_PASSWORD, 
                                     self.config.RPC_HOST, 
                                     self.config.RPC_PORT))
-        
-        #deprecated:
-        #self.transaction_output_cache not initialized here; we want to pass
-        #   self as an argument to TransactionOutputCache() constructor, and
-        #   if done here that leads to a weird recursion condition.
-    
+
     def get_current_blockchain_block_height(self):
         raise NotImplementedError #TODO maybe... for now can use another class
     
@@ -401,17 +389,13 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
     #   process will sleep until the data is available in the cache. Default:
     #   False.
     def get_tx_list(self, block_height, use_tx_out_addr_cache_only = False):
-        debug_timer = time_debug.Timer(purpose='get_tx_ids_at_height @ block %d' % block_height)
         ids = self.get_tx_ids_at_height(block_height)
-        debug_timer.stop()
         
         txs = []
-        debug_timer = time_debug.Timer(purpose='get_bci_like_tuple_for_tx_id for all txs @ block %d' % block_height)
         for tx_id in ids:
             bci_like_tuple = self.get_bci_like_tuple_for_tx_id(
                 tx_id, use_tx_out_addr_cache_only)
             txs.append(bci_like_tuple)
-        debug_timer.stop()
         return txs
     
     #Checks if the specified transaction is the first time the specified address
@@ -443,7 +427,6 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
     def get_tx_ids_at_height(self, block_height):
         block_hash = self.get_block_hash_at_height(block_height)
         tx_json = self.get_tx_json_for_block_hash(block_hash)
-        #print json.dumps(tx_json, cls=DecimalEncoder)
         tx_ids = []
         for tx_id in tx_json['tx']:
             tx_ids.append(tx_id)
@@ -525,19 +508,15 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
         json_tuple = {}
         json_tuple['hash'] = tx_id
         json_tuple['inputs'] = []
-        #json_tuple['block_height'] = '-1' #TODO: get this from...where? maybe arg
         json_tuple['out'] = []
         
         subscription = None
         if use_tx_out_addr_cache_only:
             subscription = data_subscription.TxOutputAddressCacheSubscriber(
                 database = self.database_connector)
-        
-        debug_timer = time_debug.Timer(purpose='get_decoded_tx %s' % tx_id)
+
         tx_json = self.get_decoded_tx(tx_id)
-        debug_timer.stop()
         
-        debug_timer = time_debug.Timer(purpose='resolve previous out address for inputs for tx %s' % tx_id)
         #populate input addresses
         for vin in tx_json['vin']:
             #look up address based on its previous transaction
@@ -548,9 +527,7 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
             if 'vout' in vin:
                 prev_vout_num = vin['vout'] #yes, this RPC field is poorly named
                 prev_out = {'n': prev_vout_num}
-                try:
-                    inner_debug_timer = time_debug.Timer(purpose='get_output_address %s %d' % (prev_txid, prev_vout_num))
-                    
+                try:                  
                     if use_tx_out_addr_cache_only:
                         #flag specifies that we will wait for cache to catch up
                         #   before continuing this operation. Process/thread
@@ -562,7 +539,6 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
                         subscription.do_sleep_until_producers_ready()
                 
                     address = self.get_output_address(prev_txid, prev_vout_num)
-                    inner_debug_timer.stop()
                     prev_out['addr'] = address
                 except custom_errors.PrevOutAddressCannotBeDecodedError:
                     pass
@@ -573,7 +549,6 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
                 #   probably nothing to do here. Should only come up for
                 #   coinbase transactions.
                 continue
-        debug_timer.stop()
 
         #populate output addresses
         for vout in tx_json['vout']:
@@ -615,25 +590,7 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
                                                               output_index)
             if addr is not None:
                 return addr
-        '''deprecated
-        #This class uses memory_cache.TransactionOutputCache to cache some
-        #   output addresses in memory, reducing calls to the RPC interface
-        #   and hopefully increasing speed.
 
-
-        if USE_MEMORY_CACHING_FOR_OUTPUT_ADDRESS_LOOKUPS:
-            if self.transaction_output_cache is None:
-                self.transaction_output_cache = memory_cache.TransactionOutputCache(
-                    blockchain_reader = self)
-
-            output_address = self.transaction_output_cache.get_output_address_at_position(
-                tx_id, output_index)
-            if output_address is None:
-                raise custom_errors.PrevOutAddressCannotBeDecodedError
-            else:
-                return output_address
-        else:
-        '''
         #not in cache, fall back to querying RPC interface
         if tx_json is None:
             tx_json = self.get_decoded_tx(tx_id)
@@ -854,7 +811,6 @@ class WalletExplorerReader:
     def get_wallet_labels(self, tx_id, input_address_list, 
                           reused_output_address, benchmarker = None, 
                           defer_blaming = False):
-        #dprint("Entered get_wallet_labels() for tx '%s'" % tx_id)
         if tx_id == ('4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7af'
                      'deda33b'):
             return [] #The sole tx of the genesis block. Return empty list
@@ -927,8 +883,7 @@ class WalletExplorerReader:
         
         if remote_json is None and benchmarker is not None:
             benchmarker.increment_wallet_explorer_queries_avoided_by_caching()
-        
-        #dprint("Found %d labels associated with tx '%s' and address '%s'" % (len(blame_records), tx_id, reused_output_address))
+
         return blame_records
     
     #Fetch a JSON reponse for given url belong to WalletExplorer.com via HTTP.

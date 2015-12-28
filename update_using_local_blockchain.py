@@ -70,8 +70,6 @@ def main():
                num_blocks_remaining_to_process):
             print("DEBUG: update_using_local_blockchain.py: current block height of blockchain is %d, last block processed in db is %d, %d remaining blocks to process in this run." % (current_blockchain_height, current_height_iterated, num_blocks_remaining_to_process))
 
-            #block_processor = address_reuse.block_processor.BlockProcessor(
-            #    blockchain_reader, db)
             block_processor.process_block(current_height_iterated, benchmarker, 
                                           defer_blaming = True)
             print("Completed processing of block at height %d." % current_height_iterated)

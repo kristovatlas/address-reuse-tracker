@@ -150,7 +150,6 @@ class Blamer:
                 len(clustered_blame_records) > 0:
             blame_list.extend(clustered_blame_records)
 
-        #print("DEBUG: Found %d parties to blame for address reuse for tx '%s' and address '%s'" % (len(clustered_blame_records), tx_id, address))
         return blame_list
 
     #Returns a list of BlameRecord objects, each record including the wallet 

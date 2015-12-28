@@ -379,10 +379,8 @@ class BlameResolverCoordinationDatabase(object):
         caller = 'is_block_height_claimed'
         res = self.fetch_query_and_handle_errors(stmt, arglist, caller)
         if res is None or len(res) == 0:
-            #dprint("Block height %d is not claimed." % block_height)
             return False
         else:
-            #dprint("Block height %d is claimed." % block_height)
             return True
         
     def unclaim_block_height(self, block_height):
@@ -583,7 +581,6 @@ class BlameResolverCoordinationDatabase(object):
             
             next_available_height = self._get_next_block_height_not_claimed_start_at(
                 starting_height=starting_height, claim_it=True)
-            dprint("next_available_height = %d" % next_available_height)
             claimed_blocks = deque()
             claimed_blocks.append(next_available_height)
             for height in range(next_available_height + 1,
@@ -595,59 +592,6 @@ class BlameResolverCoordinationDatabase(object):
                     break
             return claimed_blocks
 
-    
-    '''deprecated old version TODO: remove me
-    def get_next_block_height_available(self, starting_height=0, 
-                                        claim_it=False, jump_minimum=None):
-        """Get next block height not claimed by another worker.
-        
-        Uses `get_next_block_height_not_claimed_start_at` and ensures that,
-        if the block at `starting_height` is not avaialble, we jump at least
-        `jump_minimum` blocks to ensure multiprocessing workers are spaced out.
-        
-        Args:
-            starting_height (Optional[int]): The lowest block height to 
-                consider. This is needed, for example, if the worker first
-                looks up the lowest height that contains the lowest deferred
-                blame record.
-            claim_it (Optional[bool]): Defaults to False. If set to true, the
-                next unclaimed block will also be marked as claimed.
-            jump_minimum (Optional[int]): If the next available block height is 
-                not the `starting_height`, try to get the next available block 
-                that is at least `jump_minimum` blocks above the 
-                `starting_height`.
-        """
-
-        assert isinstance(starting_height, int)
-        assert isinstance(jump_minimum, int)
-        assert isinstance(claim_it, bool)
-
-        self._initialize_block_span(max_block_height=block_height,
-                                    min_block_height=0)
-
-        #Need to lock the database to make this claiming process atomic
-        #TODO: Not entirely positive that this prevents TOCTOU issues
-        #http://stackoverflow.com/questions/8828495/how-to-lock-a-sqlite3-database-in-python
-        with self.con:
-
-            next_available_height = self._get_next_block_height_not_claimed_start_at(
-                starting_height, claim_it)
-            if next_available_height == starting_height:
-                return next_available_height
-
-            if next_available_height >= starting_height + jump_minimum:
-                return next_available_height
-
-            #next avail block doesn't meet criteria, try once more
-            if claim_it:
-                self.unclaim_block_height(next_available_height)
-            new_starting_height = starting_height + jump_minimum
-            next_available_height = self._get_next_block_height_not_claimed_start_at(
-                new_starting_height, claim_it)
-            #this is guaranteed to be high enough.
-            return next_available_height
-    '''
-        
     #TODO: this is now a pointless wrapper, remove it
     def get_next_block_height_available(self, starting_height=0, 
                                         claim_it=False):
@@ -705,7 +649,6 @@ class BlameResolverCoordinationDatabase(object):
         next_available_block = None
         try:
             next_available_block = records[0]['min']
-            dprint("next_available_block as min: %s" % str(next_available_block))
             assert isinstance(next_available_block, int)
             if claim_it:
                 self.claim_block_height(next_available_block)
@@ -1433,8 +1376,7 @@ class Database:
             logger.log_and_die(msg)
         if len(records) == 0:
             return []
-        
-        #dprint("Received %d records in get_top_address_reuser_ids()." % len(records))
+
         blamed_party_ids = []
         for row in records:
             blamed_party_id = row['blame_recipient_id']
@@ -1582,9 +1524,6 @@ class Database:
                         float(stats_in_this_piece[j].pct_tx_with_history_reuse)
                     #TODO: holy crap this is ugly
                     for top_reuser_label in top_reuser_labels:
-                        dprint("j=%d top_reuser_label=%s pct_sendback=%s" % 
-                               (j, top_reuser_label, 
-                                stats_in_this_piece[j].party_label_to_pct_sendback_map[top_reuser_label]))
                         party_label_to_total_pct_sendback_map[
                             top_reuser_label] = party_label_to_total_pct_sendback_map[
                                                 top_reuser_label] + float(
@@ -1606,13 +1545,6 @@ class Database:
                 piece_stats.top_reuser_labels = top_reuser_labels
 
                 for top_reuser_label in top_reuser_labels:
-                    dprint("Total sendback pct for %s is %f" % 
-                           (top_reuser_label, 
-                            party_label_to_total_pct_sendback_map[top_reuser_label]))
-                    dprint("Total send-to-hist pct for %s is %f" % 
-                           (top_reuser_label, 
-                            party_label_to_total_pct_history_map[top_reuser_label]))
-
                     avg_sendback_for_reuser = party_label_to_total_pct_sendback_map[
                         top_reuser_label] / num_stats_in_this_piece
                     avg_history_for_reuser = party_label_to_total_pct_history_map[
@@ -1686,12 +1618,6 @@ class Database:
             for i in range(0, len(stats_over_span)):
                 block_height_to_fill = min_block_height + i
                 assert block_height_to_fill == stats_over_span[i].block_height
-                print(("DEBUG: i = %d height to fill = %d sendback_iter = %d "
-                       "tx_history_iter = %d len sendback = %d len tx "
-                       "history = %d" % (i, block_height_to_fill, sendback_iter,
-                                         tx_history_iter, 
-                                         len(sendback_record_rows), 
-                                         len(tx_history_record_rows))))
 
                 num_tx_with_sendback_reuse = 0
                 try:

@@ -12,9 +12,6 @@ import db
 import tx_blame
 import block_state
 
-#TODO: for debugging only
-import time_debug
-
 ####################
 # EXTERNAL IMPORTS #
 ####################
@@ -41,25 +38,6 @@ WEIRD_TXS_TO_SKIP_FOR_RELAYED_BY_CACHING = {
     'd5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599': 91842,
     'e3bf3d07d4b0375638d5f1db5255fe07ba2c4cb067cd81b84ee974b6585fb468': 91880
 }
-
-''' deprecated
-#These are blocks so oddly formatted that we should skip processing them
-#   entirely.
-#See: e.g. https://blockchain.info/tx/e411dbebd2f7d64dafeef9b14b5c59ec60c36779d43f850e5e347abee1e1a455
-# and https://www.blocktrail.com/BTC/tx/e411dbebd2f7d64dafeef9b14b5c59ec60c36779d43f850e5e347abee1e1a455
-WEIRD_TXS_TO_SKIP_FOR_PROCESSING = {
-    'e411dbebd2f7d64dafeef9b14b5c59ec60c36779d43f850e5e347abee1e1a455': True,
-    '2a0597e665ac3d1cabeede95cedf907934db7f639e477b3c77b242140d8cf728': True,
-    'a288fec5559c3f73fd3d93db8e8460562ebfe2fcf04a5114e8d0f2920a6270dc': True,
-    '5492a05f1edfbd29c525a3dbf45f654d0fc45a805ccd620d0a4dff47de63f90b': True,
-    'cee16a9b222f636cd27d734da0a131cee5dd7a1d09cb5f14f4d1330b22aaa38e': True,
-    '0adfc9f9ace87a2956626777c2e2637c789ca4919a77c314d53ffc1d0bc8ad38': True
-}
-'''
-
-#deprecated for now: when output address can't be decoded, 'addr' field
-#    is simply not set. See get_bci_like_tuple_for_tx_id() in blockchain_reader.
-WEIRD_TXS_TO_SKIP_FOR_PROCESSING = {}
 
 #TODO: Split the various kinds of block processing functions into subclasses
 #   of BlockProcessor.
@@ -115,35 +93,28 @@ class BlockProcessor:
                       use_tx_out_addr_cache_only = False):
         validate.check_int_and_die(block_height, 'block_height', THIS_FILE)
         current_block_state = block_state.BlockState(block_height) # block stats collector
-        debug_timer = time_debug.Timer(purpose='get_tx_list @ block %d' % block_height)
+
         tx_list = self.block_reader.get_tx_list(block_height, 
                                                 use_tx_out_addr_cache_only)
-        debug_timer.stop()
-        
-        debug_timer = time_debug.Timer(purpose='process_tx for all txs @ block %d' % block_height)
+
         for tx in tx_list:
             self.process_tx(tx, current_block_state, block_height, benchmarker, 
                             defer_blaming)
-        debug_timer.stop()
-        
-        debug_timer = time_debug.Timer(purpose='write_stored_blame @ block %d' % block_height)
+
         #Per requirements of db.store_blame(), call write_stored_blame() to
         #   write the records cached in Python memory to the database as a
         #   block-sized batch
         if db.INSERT_BLAME_STATS_ONCE_PER_BLOCK:
             self.database.write_stored_blame()
             dprint("Committed stored blame stats to db.")
-        debug_timer.stop()
             
         if benchmarker is not None:
             benchmarker.increment_blocks_processed()
-        
-        debug_timer = time_debug.Timer(purpose='record_block_stats @ block %d' % block_height)
+
         current_block_state.update_sendback_reuse_pct()
         current_block_state.update_receiver_histoy_pct()
         self.database.record_block_stats(current_block_state)
-        debug_timer.stop()
-    
+
     def get_input_address_list_from_txObj(self, txObj):
         input_address_list = []
         try:
@@ -161,15 +132,10 @@ class BlockProcessor:
     #   APIs.
     def process_block_after_deferred_blaming(self, block_height, 
                                              benchmarker = None):
-        outer_timer = time_debug.Timer(
-            purpose=('process_block_after_deferred_blaming() @ block %d' % 
-                     block_height))
         placeholder_rowid = self.database.get_blame_id_for_deferred_blame_placeholder()
         
-        debug_timer = time_debug.Timer(purpose='get_all_deferred_blame_records_at_height @ block %d' % block_height)
         blame_records = self.database.get_all_deferred_blame_records_at_height(
             block_height)
-        debug_timer.stop()
         
         dprint("Retrieved %d deferred blame records from db @ height %d" %
               (len(blame_records), block_height))
@@ -185,49 +151,25 @@ class BlockProcessor:
         #       RECEIVER, use  the update_blame_record function to update the 
         #       BlameRecord information. Update the record in the database with 
         #       the new information.
-        debug_timer = time_debug.Timer(
-            purpose=('update all fetched deferred blame records @ block %d' % 
-                     block_height))
-        debug_i = 0
         for blame_record in blame_records:
             if blame_record.address_reuse_role == db.AddressReuseRole.CLIENT:
-                inner_debug_timer = time_debug.Timer(
-                    purpose=('process_deferred_client_blame_record @ block %d record %d' % 
-                             (block_height, debug_i)))
                 self.process_deferred_client_blame_record(blame_record)
-                inner_debug_timer.stop
             if blame_record.address_reuse_type == db.AddressReuseType.SENDBACK and \
                     blame_record.address_reuse_role == db.AddressReuseRole.RECEIVER:
-                inner_debug_timer = time_debug.Timer(
-                    purpose=('delete_deferred_sendback_receiver_record @ block %d record %d' % 
-                             (block_height, debug_i)))
                 self.delete_deferred_sendback_receiver_record(blame_record)
-                inner_debug_timer.stop()
             else:
-                inner_debug_timer = time_debug.Timer(
-                    purpose=('get_single_wallet_label @ block %d record %d' % 
-                             (block_height, debug_i)))
                 blame_record.blame_label = self.blamer.get_single_wallet_label(
                     blame_record.relevant_address)
-                inner_debug_timer.stop()
                 dprint(("Attempting to update record with new blame "
                        "label %s") % blame_record.blame_label)
-                inner_debug_timer = time_debug.Timer(
-                    purpose=('update_blame_record @ block %d record %d' % 
-                             (block_height, debug_i)))
                 self.database.update_blame_record(blame_record)
-                inner_debug_timer.stop()
-            debug_i = debug_i + 1
-        
+
         if db.UPDATE_BLAME_STATS_ONCE_PER_BLOCK:
             self.database.write_deferred_blame_record_resolutions()
-        debug_timer.stop()
         
         if benchmarker is not None:
             benchmarker.increment_blocks_processed()
-        
-        outer_timer.stop()
-    
+
     #Use remote API query to obtain the wallet client used. If it cannot be 
     #   obtained, delete the record. Otherwise, update it. If in-memory caching
     #   is enlabed per-block in the db module, the caller of this function
@@ -291,7 +233,6 @@ class BlockProcessor:
     #   This should only be used with the local RPC blockchain reader.
     def cache_tx_output_addresses_for_block_only(self, block_height, 
                                                  benchmarker = None):
-        debug_timer = time_debug.Timer(purpose='fetch all tx output info @ block %d' % block_height)
         tx_id_list = self.block_reader.get_tx_ids_at_height(block_height)
         for tx_id in tx_id_list:
             rpc_style_tx_json = self.block_reader.get_decoded_tx(tx_id)
@@ -305,14 +246,11 @@ class BlockProcessor:
                                                               address)
             if benchmarker is not None:
                 benchmarker.increment_transactions_processed()
-        debug_timer.stop()
-        
-        debug_timer = time_debug.Timer(purpose='write_stored_output_addresses @ block %d' % block_height)
+
         self.database.write_stored_output_addresses() #write db file per block
-        debug_timer.stop()
         if benchmarker is not None:
             benchmarker.increment_blocks_processed()
-    
+
     #Looks for instances of address reuse in the specified tx, and stores
     #   records in the database for those instances of address reuse.
     #param0: txObj should be a transaction object decoded from the JSON output 
@@ -336,12 +274,6 @@ class BlockProcessor:
         tx_id = txObj['hash']
         dprint("tx_id = %s" % tx_id)
         
-        if tx_id in WEIRD_TXS_TO_SKIP_FOR_PROCESSING:
-            dprint("We skipped this weird transaction %s" % tx_id)
-            if benchmarker is not None:
-                benchmarker.increment_transactions_processed()
-            return None
-        
         #Compile a list of input addresses that various callees will need
         input_address_list = self.get_input_address_list_from_txObj(txObj)
         
@@ -351,11 +283,11 @@ class BlockProcessor:
             if 'prev_out' in btc_input and 'addr' in btc_input['prev_out']:
                 assert not isinstance(btc_input['prev_out'], list)
                 input_addr = btc_input['prev_out']['addr']
-                #dprint("input_addr: %s" % input_addr)
+
                 for btc_output in txObj['out']:
                     if 'addr' in btc_output:
                         output_addr = btc_output['addr']
-                        #dprint("output_addr: %s" % output_addr)
+
                         #now let's see if the input we're iterating on matches 
                         #   an output address
                         if input_addr == output_addr:
