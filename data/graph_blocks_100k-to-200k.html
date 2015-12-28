@@ -1,0 +1,187 @@
+<html>
+  <head>
+      <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+      <script type="text/javascript">
+          google.load("visualization", "1", {packages:["corechart"]});
+          google.setOnLoadCallback(drawChart);
+          function drawChart() {
+              var jscode_data = new google.visualization.DataTable();
+jscode_data.addColumn("number", "Block Height", "block_height");
+jscode_data.addColumn("number", "% Sent to Input", "pct_tx_with_sendback_reuse");
+jscode_data.addColumn("number", "% Address Reuse", "pct_tx_with_history_reuse");
+jscode_data.addColumn("number", "Blockchain.info", "Blockchain.info");
+jscode_data.addColumn("number", "SatoshiDice.com-original", "SatoshiDice.com-original");
+jscode_data.addColumn("number", "DeepBit.net", "DeepBit.net");
+jscode_data.addColumn("number", "MtGoxAndOthers", "MtGoxAndOthers");
+jscode_data.addColumn("number", "Instawallet.org", "Instawallet.org");
+jscode_data.addColumn("number", "404dc13689140087", "404dc13689140087");
+jscode_data.addColumn("number", "00005795a77580a4", "00005795a77580a4");
+jscode_data.addColumn("number", "004a0b7461ac6e1d", "004a0b7461ac6e1d");
+jscode_data.addColumn("number", "00013e8c1218989a", "00013e8c1218989a");
+jscode_data.addColumn("number", "BtcDice.com", "BtcDice.com");
+jscode_data.addRows(11);
+jscode_data.setCell(0, 0, 100000);
+jscode_data.setCell(0, 1, 0.24);
+jscode_data.setCell(0, 2, 34.81);
+jscode_data.setCell(0, 3, 0.0);
+jscode_data.setCell(0, 4, 0.0);
+jscode_data.setCell(0, 5, 0.0);
+jscode_data.setCell(0, 6, 0.050655999999999986);
+jscode_data.setCell(0, 7, 0.0);
+jscode_data.setCell(0, 8, 0.0);
+jscode_data.setCell(0, 9, 0.0);
+jscode_data.setCell(0, 10, 0.0);
+jscode_data.setCell(0, 11, 1.7679740000000064);
+jscode_data.setCell(0, 12, 0.0);
+jscode_data.setCell(1, 0, 110000);
+jscode_data.setCell(1, 1, 0.33);
+jscode_data.setCell(1, 2, 43.3);
+jscode_data.setCell(1, 3, 0.0);
+jscode_data.setCell(1, 4, 0.0);
+jscode_data.setCell(1, 5, 0.0);
+jscode_data.setCell(1, 6, 0.13880399999999998);
+jscode_data.setCell(1, 7, 0.0);
+jscode_data.setCell(1, 8, 0.0);
+jscode_data.setCell(1, 9, 0.0);
+jscode_data.setCell(1, 10, 0.0);
+jscode_data.setCell(1, 11, 3.5819170000000122);
+jscode_data.setCell(1, 12, 0.0);
+jscode_data.setCell(2, 0, 120000);
+jscode_data.setCell(2, 1, 0.21);
+jscode_data.setCell(2, 2, 45.26);
+jscode_data.setCell(2, 3, 0.0);
+jscode_data.setCell(2, 4, 0.0);
+jscode_data.setCell(2, 5, 0.0);
+jscode_data.setCell(2, 6, 0.6790560000000018);
+jscode_data.setCell(2, 7, 0.10855499999999994);
+jscode_data.setCell(2, 8, 0.0);
+jscode_data.setCell(2, 9, 0.0);
+jscode_data.setCell(2, 10, 0.0);
+jscode_data.setCell(2, 11, 5.317051999999971);
+jscode_data.setCell(2, 12, 0.0);
+jscode_data.setCell(3, 0, 130000);
+jscode_data.setCell(3, 1, 0.28);
+jscode_data.setCell(3, 2, 58.27);
+jscode_data.setCell(3, 3, 0.0);
+jscode_data.setCell(3, 4, 0.0);
+jscode_data.setCell(3, 5, 0.0);
+jscode_data.setCell(3, 6, 3.606015999999991);
+jscode_data.setCell(3, 7, 0.40710799999999975);
+jscode_data.setCell(3, 8, 0.0);
+jscode_data.setCell(3, 9, 0.13033399999999998);
+jscode_data.setCell(3, 10, 0.0);
+jscode_data.setCell(3, 11, 3.220912999999993);
+jscode_data.setCell(3, 12, 0.0);
+jscode_data.setCell(4, 0, 140000);
+jscode_data.setCell(4, 1, 1.96);
+jscode_data.setCell(4, 2, 64.09);
+jscode_data.setCell(4, 3, 0.0);
+jscode_data.setCell(4, 4, 0.0);
+jscode_data.setCell(4, 5, 0.0);
+jscode_data.setCell(4, 6, 8.329908999999901);
+jscode_data.setCell(4, 7, 1.237033000000005);
+jscode_data.setCell(4, 8, 0.0);
+jscode_data.setCell(4, 9, 1.7003510000000042);
+jscode_data.setCell(4, 10, 0.062873);
+jscode_data.setCell(4, 11, 0.13374300000000014);
+jscode_data.setCell(4, 12, 0.0);
+jscode_data.setCell(5, 0, 150000);
+jscode_data.setCell(5, 1, 12.02);
+jscode_data.setCell(5, 2, 64.84);
+jscode_data.setCell(5, 3, 0.0);
+jscode_data.setCell(5, 4, 0.0);
+jscode_data.setCell(5, 5, 11.135049999999957);
+jscode_data.setCell(5, 6, 8.966324999999923);
+jscode_data.setCell(5, 7, 3.0148569999999952);
+jscode_data.setCell(5, 8, 0.0);
+jscode_data.setCell(5, 9, 2.6449970000000014);
+jscode_data.setCell(5, 10, 0.0);
+jscode_data.setCell(5, 11, 0.047459999999999995);
+jscode_data.setCell(5, 12, 0.0);
+jscode_data.setCell(6, 0, 160000);
+jscode_data.setCell(6, 1, 20.24);
+jscode_data.setCell(6, 2, 66.69);
+jscode_data.setCell(6, 3, 0.396429);
+jscode_data.setCell(6, 4, 0.0);
+jscode_data.setCell(6, 5, 19.455593000000185);
+jscode_data.setCell(6, 6, 9.098914999999952);
+jscode_data.setCell(6, 7, 2.648412999999995);
+jscode_data.setCell(6, 8, 0.0);
+jscode_data.setCell(6, 9, 4.669304999999983);
+jscode_data.setCell(6, 10, 0.0);
+jscode_data.setCell(6, 11, 0.017962);
+jscode_data.setCell(6, 12, 0.0);
+jscode_data.setCell(7, 0, 170000);
+jscode_data.setCell(7, 1, 17.15);
+jscode_data.setCell(7, 2, 65.7);
+jscode_data.setCell(7, 3, 7.9946180000000195);
+jscode_data.setCell(7, 4, 3.858980000000001);
+jscode_data.setCell(7, 5, 14.45276499999998);
+jscode_data.setCell(7, 6, 6.348357999999952);
+jscode_data.setCell(7, 7, 1.037161000000003);
+jscode_data.setCell(7, 8, 0.0);
+jscode_data.setCell(7, 9, 6.051105999999943);
+jscode_data.setCell(7, 10, 0.0);
+jscode_data.setCell(7, 11, 0.004659999999999999);
+jscode_data.setCell(7, 12, 0.0);
+jscode_data.setCell(8, 0, 180000);
+jscode_data.setCell(8, 1, 12.99);
+jscode_data.setCell(8, 2, 79.74);
+jscode_data.setCell(8, 3, 23.28990299999998);
+jscode_data.setCell(8, 4, 22.045119999999947);
+jscode_data.setCell(8, 5, 8.300843999999973);
+jscode_data.setCell(8, 6, 2.972449999999984);
+jscode_data.setCell(8, 7, 1.255970000000003);
+jscode_data.setCell(8, 8, 0.0);
+jscode_data.setCell(8, 9, 0.9530470000000014);
+jscode_data.setCell(8, 10, 0.0);
+jscode_data.setCell(8, 11, 0.003229);
+jscode_data.setCell(8, 12, 0.2183240000000003);
+jscode_data.setCell(9, 0, 190000);
+jscode_data.setCell(9, 1, 18.08);
+jscode_data.setCell(9, 2, 81.28);
+jscode_data.setCell(9, 3, 19.093579000000044);
+jscode_data.setCell(9, 4, 21.21055600000004);
+jscode_data.setCell(9, 5, 7.705727999999983);
+jscode_data.setCell(9, 6, 3.002584999999995);
+jscode_data.setCell(9, 7, 1.516639000000004);
+jscode_data.setCell(9, 8, 1.6115859999999977);
+jscode_data.setCell(9, 9, 0.029116999999999997);
+jscode_data.setCell(9, 10, 0.0);
+jscode_data.setCell(9, 11, 0.000629);
+jscode_data.setCell(9, 12, 1.5485259999999998);
+jscode_data.setCell(10, 0, 200000);
+jscode_data.setCell(10, 1, 15.98);
+jscode_data.setCell(10, 2, 84.54);
+jscode_data.setCell(10, 3, 27.58);
+jscode_data.setCell(10, 4, 30.67);
+jscode_data.setCell(10, 5, 0.52);
+jscode_data.setCell(10, 6, 3.35);
+jscode_data.setCell(10, 7, 1.03);
+jscode_data.setCell(10, 8, 0.0);
+jscode_data.setCell(10, 9, 0.0);
+jscode_data.setCell(10, 10, 0.0);
+jscode_data.setCell(10, 11, 0.0);
+jscode_data.setCell(10, 12, 0.0);
+
+              var opt_version = 0.6
+              var json_data = new google.visualization.DataTable({"rows":[{"c":[{"v":100000},{"v":0.24},{"v":34.81},{"v":0.0},{"v":0.0},{"v":0.0},{"v":0.050655999999999986},{"v":0.0},{"v":0.0},{"v":0.0},{"v":0.0},{"v":1.7679740000000064},{"v":0.0}]},{"c":[{"v":110000},{"v":0.33},{"v":43.3},{"v":0.0},{"v":0.0},{"v":0.0},{"v":0.13880399999999998},{"v":0.0},{"v":0.0},{"v":0.0},{"v":0.0},{"v":3.5819170000000122},{"v":0.0}]},{"c":[{"v":120000},{"v":0.21},{"v":45.26},{"v":0.0},{"v":0.0},{"v":0.0},{"v":0.6790560000000018},{"v":0.10855499999999994},{"v":0.0},{"v":0.0},{"v":0.0},{"v":5.317051999999971},{"v":0.0}]},{"c":[{"v":130000},{"v":0.28},{"v":58.27},{"v":0.0},{"v":0.0},{"v":0.0},{"v":3.606015999999991},{"v":0.40710799999999975},{"v":0.0},{"v":0.13033399999999998},{"v":0.0},{"v":3.220912999999993},{"v":0.0}]},{"c":[{"v":140000},{"v":1.96},{"v":64.09},{"v":0.0},{"v":0.0},{"v":0.0},{"v":8.329908999999901},{"v":1.237033000000005},{"v":0.0},{"v":1.7003510000000042},{"v":0.062873},{"v":0.13374300000000014},{"v":0.0}]},{"c":[{"v":150000},{"v":12.02},{"v":64.84},{"v":0.0},{"v":0.0},{"v":11.135049999999957},{"v":8.966324999999923},{"v":3.0148569999999952},{"v":0.0},{"v":2.6449970000000014},{"v":0.0},{"v":0.047459999999999995},{"v":0.0}]},{"c":[{"v":160000},{"v":20.24},{"v":66.69},{"v":0.396429},{"v":0.0},{"v":19.455593000000185},{"v":9.098914999999952},{"v":2.648412999999995},{"v":0.0},{"v":4.669304999999983},{"v":0.0},{"v":0.017962},{"v":0.0}]},{"c":[{"v":170000},{"v":17.15},{"v":65.7},{"v":7.9946180000000195},{"v":3.858980000000001},{"v":14.45276499999998},{"v":6.348357999999952},{"v":1.037161000000003},{"v":0.0},{"v":6.051105999999943},{"v":0.0},{"v":0.004659999999999999},{"v":0.0}]},{"c":[{"v":180000},{"v":12.99},{"v":79.74},{"v":23.28990299999998},{"v":22.045119999999947},{"v":8.300843999999973},{"v":2.972449999999984},{"v":1.255970000000003},{"v":0.0},{"v":0.9530470000000014},{"v":0.0},{"v":0.003229},{"v":0.2183240000000003}]},{"c":[{"v":190000},{"v":18.08},{"v":81.28},{"v":19.093579000000044},{"v":21.21055600000004},{"v":7.705727999999983},{"v":3.002584999999995},{"v":1.516639000000004},{"v":1.6115859999999977},{"v":0.029116999999999997},{"v":0.0},{"v":0.000629},{"v":1.5485259999999998}]},{"c":[{"v":200000},{"v":15.98},{"v":84.54},{"v":27.58},{"v":30.67},{"v":0.52},{"v":3.35},{"v":1.03},{"v":0.0},{"v":0.0},{"v":0.0},{"v":0.0},{"v":0.0}]}],"cols":[{"type":"number","id":"block_height","label":"Block Height"},{"type":"number","id":"pct_tx_with_sendback_reuse","label":"% Sent to Input"},{"type":"number","id":"pct_tx_with_history_reuse","label":"% Address Reuse"},{"type":"number","id":"Blockchain.info","label":"Blockchain.info"},{"type":"number","id":"SatoshiDice.com-original","label":"SatoshiDice.com-original"},{"type":"number","id":"DeepBit.net","label":"DeepBit.net"},{"type":"number","id":"MtGoxAndOthers","label":"MtGoxAndOthers"},{"type":"number","id":"Instawallet.org","label":"Instawallet.org"},{"type":"number","id":"404dc13689140087","label":"404dc13689140087"},{"type":"number","id":"00005795a77580a4","label":"00005795a77580a4"},{"type":"number","id":"004a0b7461ac6e1d","label":"004a0b7461ac6e1d"},{"type":"number","id":"00013e8c1218989a","label":"00013e8c1218989a"},{"type":"number","id":"BtcDice.com","label":"BtcDice.com"}]}, opt_version)
+              var options = {
+                  isStacked: false,
+                  title: "Percent of Transactions With Address Reuse Per Block",
+                  width: 1600,
+                  length: 900,
+                  chartArea: { width: "70%", height: "80%"},
+                  hAxis: {title: "Block Height",  titleTextStyle: {color: "#333"}},
+                  vAxis: {minValue: 0, maxValue: 100}
+              };
+              var chart = new google.visualization.AreaChart(document.getElementById("chart_div"));
+              chart.draw(json_data, options);
+          }
+      </script>
+  </head>
+  <body>
+      <div id="chart_div" style="width: 1600px;  height: 900px;"></div>
+      <div id="quantities"></div>
+  </body>
+</html>

@@ -24,8 +24,5 @@ address_reuse.cfg
 #IDE project files
 .idea
 
-#temporary generated HTML files
-*.html
-
 #log files
 *.log
