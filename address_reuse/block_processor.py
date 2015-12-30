@@ -249,7 +249,7 @@ class BlockProcessor(object):
             #don't bother looking up client info
             pass
         else:
-            client_record = self.blamer.get_wallet_client_blame_record_by_tx_id(
+            client_record = self.blamer.get_wallet_client_blame_record(
                 blame_record.tx_id)
         if client_record is None:
             dprint("No client information, must delete this record.")
