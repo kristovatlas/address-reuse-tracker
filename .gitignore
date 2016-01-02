@@ -26,3 +26,6 @@ address_reuse.cfg
 
 #log files
 *.log
+
+#default generated graph file
+generated-graph.html
