@@ -1,8 +1,8 @@
-#Description: Get information about blocks and transactions in the Bitcoin 
+#Description: Get information about blocks and transactions in the Bitcoin
 #   blockchain
 
-#TODO: It might be wise to import modules conditionally based on the config 
-#   file so that people don't have to install the RPC stuff if they only want 
+#TODO: It might be wise to import modules conditionally based on the config
+#   file so that people don't have to install the RPC stuff if they only want
 #   to use remote APIs.
 
 ####################
@@ -66,68 +66,90 @@ THIS_FILE = os.path.basename(__file__)
 
 DB_DEFERRED_BLAME_PLACEHOLDER = 'DB_DEFERRED_BLAME_PLACEHOLDER'
 
+WALLET_EXPLORER_NOT_FOUND_PLACEHOLDER = 'WE_NOT_FOUND_PLACEHOLDER'
+
+#THESE ADDRESSES FOR VARIOUS REASONS WERE NOT INDEXED BY WALLETEXPLORER.COM
+'''
+ADDRESSES_TO_SKIP_FOR_WALLET_EXPLORER_COM = {
+    #address => label to use
+    '1NdB761LmTmrJixxp93nz7pEiCx5cKPW44': '1NdB761LmTmrJixxp93nz7pEiCx5cKPW44',
+    '157Mbu4yJVVeNhj9Hs4K5KSvTsYCZPFEPb': '157Mbu4yJVVeNhj9Hs4K5KSvTsYCZPFEPb',
+    '14yo1jSgQkUDaiKj7bL5JtThTrAymthBew': '14yo1jSgQkUDaiKj7bL5JtThTrAymthBew',
+    '17iGxMvWwLKhNhkTZfV9daa3ubqvQqwNyN': '17iGxMvWwLKhNhkTZfV9daa3ubqvQqwNyN',
+    '13gu4DCGXjXCscDWStvFVRTbMA2uFtxdHV': '13gu4DCGXjXCscDWStvFVRTbMA2uFtxdHV',
+    '1BUiZkSWnvg465viEKJVeghmUtUvdKs2DF': '1BUiZkSWnvg465viEKJVeghmUtUvdKs2DF',
+    '1FGmR2qmo1g37LbtXt6WLWSrXEUyNtkn4R': '1FGmR2qmo1g37LbtXt6WLWSrXEUyNtkn4R',
+    '1N6zpHfgm8LDZWV6AHLM1ownhrPy4hm323': '1N6zpHfgm8LDZWV6AHLM1ownhrPy4hm323'
+}
+'''
+
+#If we query WalletExplorer.com and find that this many address in a row haven't
+#   been clustered, kill this process. This is meant to detect massive failure
+#   of the remote API as opposed to reasonable holes.
+NUM_CONSECUTIVE_API_MISSES_TO_DIE = 100;
+
 class BlockchainInfoURLBuilder:
-    
+
     #empty unless specified in constructor
     api_key_str = ''
-    
+
     def __init__(self):
         None
-    
+
     def __init__(self, api_key):
         self.api_key_str = "&api_code=%s" % api_key
-    
+
     def get_current_height_url(self):
         return 'https://blockchain.info/latestblock?' + \
             self.api_key_str.lstrip('&')
-    
-    #This should include all of the transactions for this block; results for 
+
+    #This should include all of the transactions for this block; results for
     # /block-height are not broken into pages
     def get_block_at_height_url(self, height):
         validate.check_int_and_die(height,'height', THIS_FILE)
         return ("https://blockchain.info/block-height/%d?format=json%s" %
             (height, self.api_key_str))
-    
+
     def get_tx_for_address_at_offset(self, address, offset):
         validate.check_address_and_die(address, THIS_FILE)
         validate.check_int_and_die(offset, 'offset', THIS_FILE)
-        return ("https://blockchain.info/address/%s?format=json&offset=%d%s" % 
+        return ("https://blockchain.info/address/%s?format=json&offset=%d%s" %
             (address, offset, self.api_key_str))
-    
+
     def get_tx_info(self, tx_id):
-        return ("https://blockchain.info/tx/%s?format=json%s" % 
+        return ("https://blockchain.info/tx/%s?format=json%s" %
             (tx_id, self.api_key_str))
-    
+
     def get_number_of_transactions_for_address(self, addr):
-        return ("https://blockchain.info/address/%s?format=json&limit=0%s" % 
+        return ("https://blockchain.info/address/%s?format=json&limit=0%s" %
             (addr, self.api_key_str))
 
 class WalletExplorerURLBuilder:
-    
+
     def __init__(self):
         None
-    
+
     def get_tx_info(self, tx_id, api_key):
-        return ("https://www.walletexplorer.com/api/1/tx?txid=%s&caller=%s" % 
+        return ("https://www.walletexplorer.com/api/1/tx?txid=%s&caller=%s" %
             (tx_id, api_key))
-    
+
     def get_address_info(self, addr, api_key):
         return ("https://www.walletexplorer.com/api/1/address?address=%s&"
                 "caller=%s&from=0&count=100") % (addr, api_key)
-    
+
     #API only lists 100 addresses at a time
     def get_wallet_addresses_at_offset(self, wallet_label, offset, api_key):
         return ("http://www.walletexplorer.com/api/1/wallet-addresses?wallet=%s"
-                "&from=%d&count=100&caller=%s") % (wallet_label, offset, 
+                "&from=%d&count=100&caller=%s") % (wallet_label, offset,
                                                    api_key)
 
-#Parent class for all block explorers that defines the functions that should be 
+#Parent class for all block explorers that defines the functions that should be
 #   overriden
 class BlockExplorerReader:
-    
+
     config = None
     database_connector = None
-    
+
     def __init__(self, database_connector = None):
         if database_connector is None:
             self.database_connector = db.Database() #Create new db conn
@@ -136,39 +158,39 @@ class BlockExplorerReader:
         #Get config from database class so we don't overide a chosen database
         #   filename with whatever is default in the config class.
         self.config = self.database_connector.config_store
-        
+
     def get_current_blockchain_block_height(self):
         raise NotImplementedError
-        
+
     def get_tx_list(self, block_height, use_tx_out_addr_cache_only = False):
         raise NotImplementedError
-        
-    def is_first_transaction_for_address(self, addr, tx_id, block_height, 
+
+    def is_first_transaction_for_address(self, addr, tx_id, block_height,
                                          benchmarker = None):
         raise NotImplementedError
-    
-#TODO: Do more accurate sleeping by sleeping for difference in elapsed time 
-#   since last request vs the expected throttle, using time.clock(). Then we 
+
+#TODO: Do more accurate sleeping by sleeping for difference in elapsed time
+#   since last request vs the expected throttle, using time.clock(). Then we
 #   can allow the throttle to be a float rather than an int. Alternatively, just
 #   deprecate the sleep since we are using an API key, and will timeout
 #   and/or retry when necessary, which acts as a natural throttling mechanism.
 #Uses the Blockchain.info API remotely
 class ThrottledBlockchainReader(BlockExplorerReader):
-    
+
     config = None
     database_connector = None
-    
+
     #sleep a bit before fetching data from API to avoid bombarding it
     def throttled_fetch_url(self, url):
         if self.config.API_NUM_SEC_SLEEP > 0:
             sleep(float(self.config.API_NUM_SEC_SLEEP))
         return http.fetch_url(url)
-    
+
     def get_current_blockchain_block_height(self):
         urlbuilder = BlockchainInfoURLBuilder(
             self.config.BLOCKCHAIN_INFO_API_KEY)
         url = urlbuilder.get_current_height_url()
-        
+
         response = self.throttled_fetch_url(url)
         try:
             jsonObj = json.loads(response)
@@ -181,21 +203,21 @@ class ThrottledBlockchainReader(BlockExplorerReader):
                 logger.log_and_die(msg)
         except ValueError as e:
             #Something weird came back from API despite HTTP 200 OK, panic
-            msg = ("Expected JSON response, instead received: '%s'" % 
+            msg = ("Expected JSON response, instead received: '%s'" %
                 str(response))
             logger.log_and_die(msg)
-            
-    #Return list of transactions for the block at specified height. The 
-    #   transction list will be the json object decoded from the block explorer 
+
+    #Return list of transactions for the block at specified height. The
+    #   transction list will be the json object decoded from the block explorer
     #   API:
     #https://blockchain.info/api/blockchain_api
     def get_tx_list(self, block_height, use_tx_out_addr_cache_only = False):
         assert not use_tx_out_addr_cache_only #not applicable to remote reader
-        
+
         urlbuilder = BlockchainInfoURLBuilder(
             self.config.BLOCKCHAIN_INFO_API_KEY)
         url = urlbuilder.get_block_at_height_url(block_height) #validates height
-        
+
         response = self.throttled_fetch_url(url)
         current_num_retries = 0
         while current_num_retries <= MAX_NUM_RETRIES:
@@ -213,28 +235,28 @@ class ThrottledBlockchainReader(BlockExplorerReader):
                 msg = (("Could not find the main chain block in blocks listed "
                         "by remote API at block height %d") % block_height)
                 logger.log_and_die(msg)
-            
+
             except ValueError as e:
-                #Something weird came back from API despite HTTP 200 OK, try a 
-                #   few more times before giving up. For example, sometimes BCI 
-                #   API will return 'No Free Cluster Connection' when 
+                #Something weird came back from API despite HTTP 200 OK, try a
+                #   few more times before giving up. For example, sometimes BCI
+                #   API will return 'No Free Cluster Connection' when
                 #   overloaded.
                 current_num_retries = current_num_retries + 1
-        
-        #Exceeded maximum time we're willing to wait for the API, time to give 
-        #   up. Examples of irreconcilable return values: 'Unknown Error 
-        #   Fetching Blocks From Database' means we tried to grab a block at a 
+
+        #Exceeded maximum time we're willing to wait for the API, time to give
+        #   up. Examples of irreconcilable return values: 'Unknown Error
+        #   Fetching Blocks From Database' means we tried to grab a block at a
         #   height that doesn't exist yet.
         msg = ("Expected JSON response for block at height %d, instead "
                "received '%s'") % (block_height, str(response))
         logger.log_and_die(msg)
-            
+
     def get_number_of_transactions_for_address(self, addr):
         validate.check_address_and_die(addr, THIS_FILE)
         urlbuilder = BlockchainInfoURLBuilder(
             self.config.BLOCKCHAIN_INFO_API_KEY)
         url = urlbuilder.get_number_of_transactions_for_address(addr)
-        
+
         response = self.throttled_fetch_url(url)
         try:
             jsonObj = json.loads(response)
@@ -253,32 +275,32 @@ class ThrottledBlockchainReader(BlockExplorerReader):
             return n_tx
         except ValueError as e:
             #Something weird came back from the API despite HTTP 200 OK, panic
-            msg = ("Expected a JSON response for address '%s', instead " 
+            msg = ("Expected a JSON response for address '%s', instead "
                    "received '%s'") % (addr, str(response))
             logger.log_and_die(msg)
-        
-    def is_first_transaction_for_address(self, addr, tx_id, block_height, 
+
+    def is_first_transaction_for_address(self, addr, tx_id, block_height,
                                          benchmarker = None):
         validate.check_address_and_die(addr, THIS_FILE)
-        
-        #First, check the local database cache for this address. If it's not 
-        #   there, add it to the cache as an address that has been seen, and 
-        #   then do API lookups to determine whether this tx is the address's 
+
+        #First, check the local database cache for this address. If it's not
+        #   there, add it to the cache as an address that has been seen, and
+        #   then do API lookups to determine whether this tx is the address's
         #   first.
-        if self.database_connector.has_address_been_seen_cache_if_not(addr, 
+        if self.database_connector.has_address_been_seen_cache_if_not(addr,
                                                                       block_height):
             if benchmarker is not None:
                 benchmarker.increment_blockchain_info_queries_avoided_by_caching()
                 benchmarker.increment_blockchain_info_queries_avoided_by_caching()
             return False
-        
+
         n_tx = self.get_number_of_transactions_for_address(addr)
         offset = int(n_tx) - 1
-        
+
         urlbuilder = BlockchainInfoURLBuilder(
             self.config.BLOCKCHAIN_INFO_API_KEY)
         url = urlbuilder.get_tx_for_address_at_offset(addr, offset)
-        
+
         response = self.throttled_fetch_url(url)
         try:
             jsonObj = json.loads(response)
@@ -294,9 +316,9 @@ class ThrottledBlockchainReader(BlockExplorerReader):
                 else:
                     return False
             else:
-                #Something wrong, this tx list seems to be neither empty nor 
+                #Something wrong, this tx list seems to be neither empty nor
                 #   contains a first tx, panic!
-                msg = ("Expected zero or one transactions for address '%s'" % 
+                msg = ("Expected zero or one transactions for address '%s'" %
                     addr)
                 logger.log_and_die(msg)
         except ValueError as e:
@@ -307,24 +329,24 @@ class ThrottledBlockchainReader(BlockExplorerReader):
 
     #Retrieves 'relayed by' field from BCI API. First, it will check if this
     #   information has been locally cached in the database. If not, it
-    #   will be retrieved via HTTP and the helper function 
+    #   will be retrieved via HTTP and the helper function
     #   get_tx_relayed_by_using_txObj() will cache the result for future
     #   queries.
-    def get_tx_relayed_by_using_tx_id(self, tx_id, txObj = None, 
+    def get_tx_relayed_by_using_tx_id(self, tx_id, txObj = None,
                                       benchmarker = None):
         cached_relayed_by = self.database_connector.get_cached_relayed_by(tx_id)
-        dprint("DB Cached relayed-by field for tx %s is: %s" % 
+        dprint("DB Cached relayed-by field for tx %s is: %s" %
                (tx_id, str(cached_relayed_by)))
         if cached_relayed_by is not None:
             if benchmarker is not None:
                 benchmarker.increment_blockchain_info_queries_avoided_by_caching()
             return cached_relayed_by
-        
+
         urlbuilder = BlockchainInfoURLBuilder(
             self.config.BLOCKCHAIN_INFO_API_KEY)
         url = urlbuilder.get_tx_info(tx_id)
         response = self.throttled_fetch_url(url)
-        
+
         try:
             jsonObj = json.loads(response)
             return self.get_tx_relayed_by_using_txObj(jsonObj)
@@ -333,7 +355,7 @@ class ThrottledBlockchainReader(BlockExplorerReader):
             msg = ("Expected JSON response for tx id '%s', instead received "
                    "'%s'") % (str(tx_id), str(response))
             logger.log_and_die(msg)
-    
+
     #Using JSON data retrieved from remote API call, get the 'relayed by'
     #   field from BCI's remote API, and then cache it in the databse.
     def get_tx_relayed_by_using_txObj(self, txObj):
@@ -341,46 +363,46 @@ class ThrottledBlockchainReader(BlockExplorerReader):
             relayed_by = txObj['relayed_by']
             block_height = txObj['block_height']
             tx_id = txObj['hash']
-            self.database_connector.record_relayed_by(tx_id, block_height, 
+            self.database_connector.record_relayed_by(tx_id, block_height,
                                                       relayed_by)
             return relayed_by
         except IndexError as e:
-            msg = ("relayed_by field missing from tx JSON object: %s" % 
+            msg = ("relayed_by field missing from tx JSON object: %s" %
                 str(txObj))
             logger.log_and_die(msg)
 
 #Helps JSON encoder cope with floating point values in JSON
 #http://stackoverflow.com/questions/1960516/python-json-serialize-a-decimal-object
 class DecimalEncoder(json.JSONEncoder):
-    
+
     def default(self, o):
         if isinstance(o, decimal.Decimal):
             return float(o)
         return super(DecimalEncoder, self).default(o)
 
-#Uses bitcoind's RPC interface to query about the state of the blockchain as 
-#   reflected locally. This (hopefully) is much faster than querying a remote 
+#Uses bitcoind's RPC interface to query about the state of the blockchain as
+#   reflected locally. This (hopefully) is much faster than querying a remote
 #   API.
 #TODO: Raise a custom error if trying to fetch information not yet in bitcoind's DB
 class LocalBlockchainRPCReader(BlockExplorerReader):
-    
+
     rpc_connection              = None
     #transaction_output_cache    = None ''' deprecated '''
-    
+
     def __init__(self, database_connector = None):
         BlockExplorerReader.__init__(self, database_connector) #super
-        
+
         self.rpc_connection = AuthServiceProxy(
-            "http://%s:%s@%s:%s" % (self.config.RPC_USERNAME, 
-                                    self.config.RPC_PASSWORD, 
-                                    self.config.RPC_HOST, 
+            "http://%s:%s@%s:%s" % (self.config.RPC_USERNAME,
+                                    self.config.RPC_PASSWORD,
+                                    self.config.RPC_HOST,
                                     self.config.RPC_PORT))
 
     def get_current_blockchain_block_height(self):
         raise NotImplementedError #TODO maybe... for now can use another class
-    
+
     #Retreives a list of transactions at specified block height. Each tx
-    #   will be formatted as a BCI-like tuple per 
+    #   will be formatted as a BCI-like tuple per
     #   get_bci_like_tuple_for_tx_id().
     #param0: block_height: Height at which to get a list of txs for.
     #param1: use_tx_out_addr_cache_only (Optional): When looking up addresses
@@ -390,14 +412,14 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
     #   False.
     def get_tx_list(self, block_height, use_tx_out_addr_cache_only = False):
         ids = self.get_tx_ids_at_height(block_height)
-        
+
         txs = []
         for tx_id in ids:
             bci_like_tuple = self.get_bci_like_tuple_for_tx_id(
                 tx_id, use_tx_out_addr_cache_only)
             txs.append(bci_like_tuple)
         return txs
-    
+
     #Checks if the specified transaction is the first time the specified address
     #   has received funds. If it is, it will cache this for the specified
     #   block height in the database so subsequent lookups will answer
@@ -406,24 +428,24 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
     #   genesis block. Otherwise, correct results not guaranteed! It is the
     #   caller's responsibility to ensure that enough blocks have been
     #   processed.
-    def is_first_transaction_for_address(self, addr, tx_id, block_height, 
+    def is_first_transaction_for_address(self, addr, tx_id, block_height,
                                          benchmarker = None):
-        if self.database_connector.has_address_been_seen_cache_if_not(addr, 
+        if self.database_connector.has_address_been_seen_cache_if_not(addr,
                                                                       block_height):
-            dprint("Address %s at block height %d was already seen." % 
+            dprint("Address %s at block height %d was already seen." %
                 (addr, block_height))
             return False
         else:
-            dprint("Address %s at block height %d has no prior tx history." % 
+            dprint("Address %s at block height %d has no prior tx history." %
                   (addr, block_height))
             return True
-    
+
     def get_block_hash_at_height(self, block_height):
         return self.rpc_connection.getblockhash(block_height)
-    
+
     def get_tx_json_for_block_hash(self, block_hash):
         return self.rpc_connection.getblock(block_hash)
-    
+
     def get_tx_ids_at_height(self, block_height):
         block_hash = self.get_block_hash_at_height(block_height)
         tx_json = self.get_tx_json_for_block_hash(block_hash)
@@ -431,10 +453,10 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
         for tx_id in tx_json['tx']:
             tx_ids.append(tx_id)
         return tx_ids
-    
+
     #Returns the transaction in raw format. If the requested transaction is
     #   the sole transaction of the genesis block, bitcoind's RPC interface
-    #   will throw an error 'No information available about transaction 
+    #   will throw an error 'No information available about transaction
     #   (code -5)' so we preempt this by raising a custom error that callers
     #   should handle; iterating callers should just move onto the next tx.
     #throws: NoDataAvailableForGenesisBlockError
@@ -444,7 +466,7 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
             raise custom_errors.NoDataAvailableForGenesisBlockError()
         else:
             return self.rpc_connection.getrawtransaction(tx_id)
-    
+
     #Gets a human-readable string of the transaction in JSON format.
     def get_decoded_tx(self, tx_id):
         try:
@@ -458,7 +480,7 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
                 'version':  1,
                 'locktime': 0,
                 'vin': [{
-                    "sequence":4294967295, 
+                    "sequence":4294967295,
                     'coinbase': ('04ffff001d0104455468652054696d65732030332f4a6'
                                  '16e2f32303039204368616e63656c6c6f72206f6e2062'
                                  '72696e6b206f66207365636f6e64206261696c6f75742'
@@ -485,17 +507,17 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
                 ]
             }
             return genesis_json
-    
+
     #Converts required infromation from local bitcoind RPC into a format similar
     #   to that returned by Blockchain.info's API. This helps to make the code
     #   more agnostic as to the source of blockchain data.
     #Note: When an output address cannot be decoded, BCI excludes the "addr"
     #   field from the JSON returned. Therefore, this function will do the same.
-    #   See: 
+    #   See:
     #   https://blockchain.info/tx/cee16a9b222f636cd27d734da0a131cee5dd7a1d09cb5f14f4d1330b22aaa38e
     #Note: When a previous output address for an input cannot be decoded, BCI
     #   excludes the "addr" field from the JSON returned. Therefore, this
-    #   function will do the same. See: 
+    #   function will do the same. See:
     #   https://blockchain.info/tx/8ebe1df6ebf008f7ec42ccd022478c9afaec3ca0444322243b745aa2e317c272
     #param0: tx_id: Specified transaction hash
     #param1: use_tx_out_addr_cache_only (Optional): When looking up addresses
@@ -503,20 +525,20 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
     #   rather than slower option of using RPC interface. If set to True,
     #   process will sleep until the data is available in the cache. Default:
     #   False.
-    def get_bci_like_tuple_for_tx_id(self, tx_id, 
+    def get_bci_like_tuple_for_tx_id(self, tx_id,
                                      use_tx_out_addr_cache_only = False):
         json_tuple = {}
         json_tuple['hash'] = tx_id
         json_tuple['inputs'] = []
         json_tuple['out'] = []
-        
+
         subscription = None
         if use_tx_out_addr_cache_only:
             subscription = data_subscription.TxOutputAddressCacheSubscriber(
                 database = self.database_connector)
 
         tx_json = self.get_decoded_tx(tx_id)
-        
+
         #populate input addresses
         for vin in tx_json['vin']:
             #look up address based on its previous transaction
@@ -527,7 +549,7 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
             if 'vout' in vin:
                 prev_vout_num = vin['vout'] #yes, this RPC field is poorly named
                 prev_out = {'n': prev_vout_num}
-                try:                  
+                try:
                     if use_tx_out_addr_cache_only:
                         #flag specifies that we will wait for cache to catch up
                         #   before continuing this operation. Process/thread
@@ -537,7 +559,7 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
                         dprint(("get_bci_like_tuple_for_tx_id: May sleep until "
                                 "tx output address is cached..."))
                         subscription.do_sleep_until_producers_ready()
-                
+
                     address = self.get_output_address(prev_txid, prev_vout_num)
                     prev_out['addr'] = address
                 except custom_errors.PrevOutAddressCannotBeDecodedError:
@@ -560,8 +582,8 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
             json_tuple['out'].append(current_output)
 
         return json_tuple
-    
-    #Returns an ordered list of output addresses for the specified transaction 
+
+    #Returns an ordered list of output addresses for the specified transaction
     #   JSON as returned by the bitcoind RPC interface. If an address cannot be
     #   decoded for one of the outputs, a value of None will be inserted
     #   at that position in the list.
@@ -580,13 +602,13 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
             else:
                 output_addresses.append(None)
         return output_addresses
-    
+
     #Raises: custom_errors.PrevOutAddressCannotBeDecoded
     #TODO: This does not properly handle multisig outputs that list multiple
     #   addresses per output.
     def get_output_address(self, tx_id, output_index, tx_json = None):
         if USE_TX_OUTPUT_ADDR_CACHE_FIRST:
-            addr = self.database_connector.get_output_address(tx_id, 
+            addr = self.database_connector.get_output_address(tx_id,
                                                               output_index)
             if addr is not None:
                 return addr
@@ -610,22 +632,24 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
 #Queries WalletExplorer.com for cluster analysis information about addresses.
 #   This information can be used to blame particular parties for address reuse.
 class WalletExplorerReader:
-    
+
     config = None
     database_connector = None
-    
+    consecutive_lookup_misses = None
+
     def __init__(self, database_connector = None):
         self.config = config.Config()
         if database_connector is None:
             self.database_connector = db.Database()      #Create new db conn
         else:
             self.database_connector = database_connector #Use existing db conn
-        
+        self.consecutive_lookup_misses = 0
+
     #sleep a bit before fetching data from API to avoid bombarding it
     def fetch_url(self, url):
         return http.fetch_url(url)
-    
-    #Returns the label for a bitcoin address if it can retreived from the 
+
+    #Returns the label for a bitcoin address if it can retreived from the
     #   cache, otherwise returns None
     def get_label_from_cache(self, address):
         if not USE_LOCAL_LABEL_CACHE:
@@ -637,8 +661,8 @@ class WalletExplorerReader:
                 return None
             else:
                 return cached_label
-    
-    #Returns the label for a sender's bitcoin address based on the JSON 
+
+    #Returns the label for a sender's bitcoin address based on the JSON
     #   returned by WE.com. Returns None if no label is specified by WE.com.
     def get_sender_label_from_json(self, remote_json):
         if remote_json is None:
@@ -651,20 +675,20 @@ class WalletExplorerReader:
                     remote_json['wallet_id']:
                 return remote_json['wallet_id']
             else:
-                #WE.com has no label for this address, for some reason that I 
+                #WE.com has no label for this address, for some reason that I
                 #   am not currently curious about :>
                 return None
         except IndexError as e:
             msg = (("One or more expected fields in the tx JSON object are "
-                   "missing: '%s'. Exception: '%s'") % 
+                   "missing: '%s'. Exception: '%s'") %
                     (str(remote_json), str(e)))
             logger.log_and_die(msg)
-    
+
     def get_receiver_label_from_json(self, remote_json, receiver_address):
         if remote_json is None:
             logger.log_and_die(("Called get_receiver_label_from_json() with a "
                                 "'remote_json' value of None."))
-        
+
         #find the address in the outputs
         receiver = ''
         try:
@@ -679,7 +703,7 @@ class WalletExplorerReader:
                 logger.log_and_die(msg)
         except IndexError as e:
             msg = (("One or more expected fields in the tx JSON object are "
-                   "missing: '%s'. Exception: '%s'") % 
+                   "missing: '%s'. Exception: '%s'") %
                     (str(remote_json), str(e)))
             logger.log_and_die(msg)
 
@@ -690,29 +714,38 @@ class WalletExplorerReader:
     #   processing.
     def get_wallet_label_for_single_address(self, addr):
         label = None
+
+        #if addr in ADDRESSES_TO_SKIP_FOR_WALLET_EXPLORER_COM:
+        #    return ADDRESSES_TO_SKIP_FOR_WALLET_EXPLORER_COM[addr]
+
         if USE_LOCAL_LABEL_CACHE:
             label = self.get_label_from_cache(addr)
-        
+
         if label is None:
             #Must query remote API via HTTP
-            remote_json = self.get_address_json_net(addr)
-            
+            try:
+                remote_json = self.get_address_json_net(addr)
+            except custom_errors.NotFoundAtRemoteAPIError:
+                #A small percentage of addresses are not clustered. For those,
+                #   just use a placeholder for now.
+                return WALLET_EXPLORER_NOT_FOUND_PLACEHOLDER
+
             if 'label' in remote_json:
                 label = remote_json['label']
             if 'wallet_id' not in remote_json:
                 return None
             if label is None:
-                #If no label field set, use remote API's wallet_id field 
+                #If no label field set, use remote API's wallet_id field
                 #   instead, which is just a random alphanum string
                 label = remote_json['wallet_id']
-                
+
             cached = self.database_connector.cache_blame_label_for_btc_address(
                 addr, label)
             if cached:
                 pass
             else:
                 pass #TODO can handle this differently
-            
+
             if CACHE_ALL_WALLET_ADDRESSES:
                 #Aggressively query and cache all addresses in this wallet
                 addresses = self.get_addresses_for_wallet_label_net(label)
@@ -724,15 +757,15 @@ class WalletExplorerReader:
                     if cached:
                         pass
                     else:
-                        #WE.com sometimes has weirdly formatted addresses 
-                        #   returned for this API call such as 
+                        #WE.com sometimes has weirdly formatted addresses
+                        #   returned for this API call such as
                         #   '#multisig_a74f4a173bb335f7_1'. These will be
                         #   rejected by a validation check, result in a False
                         #   return value. We can safely ignore this.
-                        pass 
-                    
+                        pass
+
         return label
-    
+
     #Helper function for get_addresses_for_wallet_label_net() extracts addresses
     #   from JSON retrieved from remote API.
     def get_address_list_from_json(self, address_list_json):
@@ -741,37 +774,34 @@ class WalletExplorerReader:
             address = item['address']
             addresses.append(address)
         return addresses
-    
+
     def get_label_for_wallet_id_net(self, wallet_id):
         api_key = self.config.WALLETEXPLORER_API_KEY
         urlbuilder = WalletExplorerURLBuilder()
         url = urlbuilder.get_wallet_addresses_at_offset(
             wallet_label = wallet_id, offset = 0, api_key = api_key)
+        json = None
         try:
             json = self.get_json_net(url)
         except custom_errors.NotFoundAtRemoteAPIError:
-            #Might try to look up a label that doesn't exist, like our
-            #   db placeholder for deferred records. ignore it at our own
-            #   peril!
-            print "Warning: Couldn't lookup wallet '%s'" % wallet_id
             return None
         try:
             label  = json['label']
             return label
         except KeyError:
             return None
-    
+
     #Does a remote API lookup to fetch all addresses that belong to the wallet
     #   with the specified label such as 'BTC-e.com' or '637e58bb505ab93d'
     def get_addresses_for_wallet_label_net(self, blame_label):
         offset = 0
-        
+
         api_key = self.config.WALLETEXPLORER_API_KEY
         urlbuilder = WalletExplorerURLBuilder()
-        url = urlbuilder.get_wallet_addresses_at_offset(blame_label, offset, 
+        url = urlbuilder.get_wallet_addresses_at_offset(blame_label, offset,
                                                         api_key)
         json = self.get_json_net(url)
-        
+
         addresses = self.get_address_list_from_json(json)
 
         addresses_count = 0
@@ -779,45 +809,45 @@ class WalletExplorerReader:
             addresses_count = json['addresses_count']
         except KeyError as e:
             logger.log_and_die(str(e))
-        
+
         #start by retrieving up to 100 addresses, continue until all fetched.
         addresses_remaining = addresses_count - 100
         offset = 100
         while addresses_remaining > 0:
-            url = urlbuilder.get_wallet_addresses_at_offset(blame_label, 
+            url = urlbuilder.get_wallet_addresses_at_offset(blame_label,
                                                             offset, api_key)
             json = self.get_json_net(url)
             addresses.extend(self.get_address_list_from_json(json))
-            
+
             addresses_remaining = addresses_remaining - 100
             offset = offset + 100
-        
+
         return addresses
-    
-    #Looks in local database cache for all labels that we need. If not all of 
-    #   the labels we need are cached, a single HTTP request is made to look 
-    #   them up remotely, and then we cache relevant info for future queries. 
+
+    #Looks in local database cache for all labels that we need. If not all of
+    #   the labels we need are cached, a single HTTP request is made to look
+    #   them up remotely, and then we cache relevant info for future queries.
     #   The purpose of this is to try to avoid remote lookups whenever possible
-    #parm0: tx_id: The transaction ID of the transaction in question containing 
+    #parm0: tx_id: The transaction ID of the transaction in question containing
     #   address reuse
     #param1: sender_address_list: A list of input addresses for the transaction.
-    #   We need this information to determine whether we have any information 
+    #   We need this information to determine whether we have any information
     #   locally cached for the sender.
-    #param2: reused_output_address: A bitcoin address that has been implicated 
-    #   as an output in an instance of address reuse. If this is send-back 
-    #   address reuse, then the address will also be listed in the inputs of 
+    #param2: reused_output_address: A bitcoin address that has been implicated
+    #   as an output in an instance of address reuse. If this is send-back
+    #   address reuse, then the address will also be listed in the inputs of
     #   the transaction.
     #TODO: This function is a bit long, consider breaking it up
-    def get_wallet_labels(self, tx_id, input_address_list, 
-                          reused_output_address, benchmarker = None, 
+    def get_wallet_labels(self, tx_id, input_address_list,
+                          reused_output_address, benchmarker = None,
                           defer_blaming = False):
         if tx_id == ('4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7af'
                      'deda33b'):
             return [] #The sole tx of the genesis block. Return empty list
-        
+
         blame_records = []
         remote_json = None #Only fill this in with an HTTP request if we don't have everything cached.
-        
+
         #Add record for sender
         sender_label = None
         if defer_blaming:
@@ -830,17 +860,17 @@ class WalletExplorerReader:
                         #Sender label is cached
                         sender_label = cached_label
             else:
-                #The label for the input addresses has never been cached. Resort to 
+                #The label for the input addresses has never been cached. Resort to
                 #   HTTP query.
                 remote_json = self.get_transaction_json_net(tx_id)
                 sender_label = self.get_sender_label_from_json(remote_json)
-            
+
         if sender_label is not None:
-            #Obtanied sender label either from local cache or remote query. Add 
+            #Obtanied sender label either from local cache or remote query. Add
             #   to blame records.
             blame_record = tx_blame.BlameRecord(sender_label, db.AddressReuseRole.SENDER, db.DataSource.WALLET_EXPLORER)
             blame_records.append(blame_record)
-            
+
             if CACHE_LOCALLY_FOR_ALL_INPUT_ADDRESSES:
                 for input_address in input_address_list:
                     cached = self.database_connector.cache_blame_label_for_btc_address(
@@ -849,29 +879,29 @@ class WalletExplorerReader:
                         pass
                     else:
                         pass #TODO: can modify this later if we wish
-                        
-        
+
+
         #Add record for receiver
         receiver_label = None
         if USE_LOCAL_LABEL_CACHE:
             receiver_label = self.get_label_from_cache(reused_output_address)
-        
+
         if receiver_label is None:
             if defer_blaming:
                 receiver_label = DB_DEFERRED_BLAME_PLACEHOLDER
             else:
-                #The label for the output address has never been cached. Resort 
+                #The label for the output address has never been cached. Resort
                 #   to HTTP query.
                 if remote_json is None: #Don't make more than one HTTP query.
                     remote_json = self.get_transaction_json_net(tx_id)
-                receiver_label = self.get_receiver_label_from_json(remote_json, 
+                receiver_label = self.get_receiver_label_from_json(remote_json,
                                                                    reused_output_address)
-        
+
         if receiver_label is not None:
-            #Obtained receiver label either from local cache or remote query. 
+            #Obtained receiver label either from local cache or remote query.
             #   Add to blame records.
-            blame_record = tx_blame.BlameRecord(receiver_label, 
-                                                db.AddressReuseRole.RECEIVER, 
+            blame_record = tx_blame.BlameRecord(receiver_label,
+                                                db.AddressReuseRole.RECEIVER,
                                                 db.DataSource.WALLET_EXPLORER)
             blame_records.append(blame_record)
             cached = self.database_connector.cache_blame_label_for_btc_address(
@@ -880,36 +910,62 @@ class WalletExplorerReader:
                 pass
             else:
                 pass #TODO: can handle this differently
-        
+
         if remote_json is None and benchmarker is not None:
             benchmarker.increment_wallet_explorer_queries_avoided_by_caching()
 
         return blame_records
-    
+
     #Fetch a JSON reponse for given url belong to WalletExplorer.com via HTTP.
     #Error conditions handled: WE.com returns found:false in the JSON.
-    #If object cannot be found at remote API, raises NotFoundAtRemoteAPIError.
+    #If object cannot be found at remote API for consecutive calls, a counter
+    #   is incremented until it reaches NUM_CONSECUTIVE_API_MISSES_TO_DIE,
+    #   otherwise just raises raises a NotFoundAtRemoteAPIError.
     def get_json_net(self, url):
         response = self.fetch_url(url)
         try:
             jsonObj = json.loads(response)
-            if not jsonObj['found']:
-                raise custom_errors.NotFoundAtRemoteAPIError
-            return jsonObj
         except ValueError as e:
             #Something went wrong with JSON response from API, panic
-            msg = (("Expected JSON response from '%s' instead received '%s'") % 
+            msg = (("Expected JSON response from '%s' instead received '%s'") %
                 (url, str(response)))
             logger.log_and_die(msg)
-    
+
+        if jsonObj['found']:
+            self.consecutive_lookup_misses = 0
+            return jsonObj
+        else:
+            #Some addresses are not clustered due to limitations of the
+            #   WalletExplorer.com API; for example, m-of-n escrow
+            #   addresses.
+            self.consecutive_lookup_misses = (
+                self.consecutive_lookup_misses + 1)
+            dprint("Not found for url: %s. %d consecutive misses so far." %
+                   (url, self.consecutive_lookup_misses))
+            if (self.consecutive_lookup_misses ==
+                    NUM_CONSECUTIVE_API_MISSES_TO_DIE):
+                msg = ("Error: Encountered %d consecutive misses to "
+                       "WalletExplorer.com API. Please investigate and "
+                       "increase the package constant "
+                       "NUM_CONSECUTIVE_API_MISSES_TO_DIE if everything's "
+                       "okay.") % NUM_CONSECUTIVE_API_MISSES_TO_DIE
+                logger.log_and_die(msg)
+            else:
+                raise custom_errors.NotFoundAtRemoteAPIError
+
     #Fetch information for a given address from WalletExplorer.com via HTTP
-    #Error conditions handled: WE.com returns found:false in the JSON.
+    #If informationf or the specified address is not found at the remote API,
+    #   raises custom_errors.NotFoundAtRemoteAPIError.
     def get_address_json_net(self, addr):
         api_key = self.config.WALLETEXPLORER_API_KEY
         urlbuilder = WalletExplorerURLBuilder()
         url = urlbuilder.get_address_info(addr, api_key)
-        return self.get_json_net(url)
-    
+        try:
+            json = self.get_json_net(url)
+            return json
+        except custom_errors.NotFoundAtRemoteAPIError:
+            raise
+
     #Fetch information for a given transaction from WalletExplorer.com via HTTP
     #Error conditions handled: WE.com returns found:false in the JSON.
     def get_transaction_json_net(self, tx_id):
