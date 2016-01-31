@@ -41,7 +41,7 @@ def fetch_url(url):
                                    (url, err.code, err.reason, response))
             else:
                 current_retry_time_in_sec = current_retry_time_in_sec + 1
-                print(("Encountered HTTPError fetching '%s'. Will waiting for "
+                print(("Encountered HTTPError fetching '%s'. Will wait for "
                        "%d seconds before retrying. Error was: '%s'") %
                       (url, current_retry_time_in_sec, str(err)))
         except urllib2.URLError as err:
@@ -50,7 +50,7 @@ def fetch_url(url):
                                     "%s") % (url, str(err)))
             else:
                 current_retry_time_in_sec = current_retry_time_in_sec + 1
-                print(("Encountered URLError fetching '%s'. Will waiting for "
+                print(("Encountered URLError fetching '%s'. Will wait for "
                        "%d seconds before retrying. Error was: '%s'") %
                       (url, current_retry_time_in_sec, str(err)))
         except socket.error as err:
