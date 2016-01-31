@@ -3,6 +3,7 @@
 import urllib2          # web scraping
 from time import sleep  # pausing before retrying when API site is down
 import ssl              # ssl.SSLError
+import socket           # socket.error
 
 import logger
 
@@ -50,6 +51,15 @@ def fetch_url(url):
             else:
                 current_retry_time_in_sec = current_retry_time_in_sec + 1
                 print(("Encountered URLError fetching '%s'. Will waiting for "
+                       "%d seconds before retrying. Error was: '%s'") %
+                      (url, current_retry_time_in_sec, str(err)))
+        except socket.error as err:
+            if current_retry_time_in_sec == MAX_RETRY_TIME_IN_SEC:
+                logger.log_and_die(("URL '%s' could not be fetched (socket "
+                                    "error): %s") % (url, str(err)))
+            else:
+                current_retry_time_in_sec = current_retry_time_in_sec + 1
+                print(("Encountered socket error fetching '%s'. Will wait for "
                        "%d seconds before retrying. Error was: '%s'") %
                       (url, current_retry_time_in_sec, str(err)))
 
