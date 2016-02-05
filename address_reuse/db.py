@@ -1560,24 +1560,30 @@ class Database:
             dprint("Conslidated into %d records." % len(averaged_stats))
             return averaged_stats
 
-    #param0: blame_party_ids: The stats will include some stats specific to
-    #   particular parties. This parameter specifies which parties should be
-    #   included. Each int in the list should be the rowid of the party in the
-    #   blame ID table.
-    #param1: min_block_height (Optional): Minimum block height we want stats
-    #   for. Default = 0
-    #param2: max_block_height (Optional): Maximum block height we want stats
-    #   for. Default = highest block in DB
-    #param3: csv_dump_filename (Optional): If set, all of the data accumulated
-    #   by this function will be dumped to a file in Comma-Separated-Value
-    #   format, so it can be easily loaded later, or exported for other
-    #   purposes.
-    #Returns: A list of BlameStatsPerBlock objects
     #TODO: function is long, refactor it
     def get_blame_stats_for_block_span(self, blame_party_ids,
-                                       min_block_height = 0,
-                                       max_block_height = None,
-                                       csv_dump_filename = None):
+                                       min_block_height=0,
+                                       max_block_height=None,
+                                       csv_dump_filename=None):
+        """Gets a list of blame stats per block over specified span.
+
+        If a `max_block_height` is specified, the returned list should be of
+        a length equal to the size of the span; if one is not specified,
+        the data will be fetched up to the highest point in the database.
+
+        Args:
+            blame_party_ids (List[int]): A list of ids in the database that
+                correspond to blamed parties the caller wants stats for. Each
+                int is the rowid of the party in the blame ID table.
+            min_block_height (Optional[int]): Minimum block height at which to
+                fetch address reuse stats for. Default is 0.
+            max_block_height (Optional[int]): Maximum block height at which to
+                fetch stats for. Default is highest block in DB.
+            csv_dump_filename (Optional[str]): Not currently supported.
+
+        Returns:
+            List[`BlameStatsPerBlock`]: List of stats per block.
+        """
         if csv_dump_filename is not None:
             raise NotImplementedError #TODO
 
@@ -1588,8 +1594,8 @@ class Database:
 
         dprint("stats_over_span length %d " % len(stats_over_span))
         if max_block_height is not None:
-            assert len(stats_over_span) == (max_block_height - \
-                                            min_block_height + 1)
+            assert (len(stats_over_span) ==
+                    max_block_height - min_block_height + 1)
 
         #fetch address reuse stats about particular entities in the span
         #Note: This will be slow if there are many blame_party_ids:
@@ -1609,7 +1615,7 @@ class Database:
             assert len(stats_over_span) >= len(tx_history_record_rows)
 
             #Fill in the address reuse stats for this address reuser in the
-            #   list of per-block stat's we're returning. This blame party
+            #   list of per-block stats we're returning. This blame party
             #   may not have stats for every block in the span, so fill those
             #   in with zeroes.
             sendback_iter = 0
