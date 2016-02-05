@@ -1609,7 +1609,7 @@ class Database:
             assert len(stats_over_span) >= len(tx_history_record_rows)
 
             #Fill in the address reuse stats for this address reuser in the
-            #   lits of per-block stat's we're returning. This blame party
+            #   list of per-block stat's we're returning. This blame party
             #   may not have stats for every block in the span, so fill those
             #   in with zeroes.
             sendback_iter = 0
