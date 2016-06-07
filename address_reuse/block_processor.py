@@ -276,7 +276,11 @@ class BlockProcessor(object):
         tx_list = self.block_reader.get_tx_list(block_height)
         for tx_obj in tx_list:
             tx_id = tx_obj['hash']
-            relayed_by = tx_obj['relayed_by']
+            try:
+                relayed_by = tx_obj['relayed_by']
+            except KeyError as err: #When fetching locally, it doesn't have this field
+				relayed_by = ''
+				pass
             if (tx_id in WEIRD_TXS_TO_SKIP_FOR_RELAYED_BY_CACHING and
                     WEIRD_TXS_TO_SKIP_FOR_RELAYED_BY_CACHING[tx_id] ==
                     block_height):

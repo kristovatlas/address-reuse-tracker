@@ -21,9 +21,12 @@ import traceback
 ################
 # BEGIN SCRIPT #
 ################
-
-db = address_reuse.db.Database(
-    blockchain_mode = address_reuse.config.BlockchainMode.REMOTE_API)
+if address_reuse.config.OFFLINE_MODE=0:
+    db = address_reuse.db.Database(
+        blockchain_mode = address_reuse.config.BlockchainMode.REMOTE_API)
+else:
+    db = address_reuse.db.Database(
+        blockchain_mode = address_reuse.config.BlockchainMode.LOCAL_API)
 
 #determine height to begin querying for
 heighest_block_in_cache = db.get_highest_relayed_by_height()
@@ -33,7 +36,11 @@ if heighest_block_in_cache is not None:
     
 #Determine the current furthest block out in the blockchain according to remote 
 #   API
-api_reader = address_reuse.blockchain_reader.ThrottledBlockchainReader(db)
+if address_reuse.config.OFFLINE_MODE=0:
+    api_reader = address_reuse.blockchain_reader.ThrottledBlockchainReader(db)
+else:
+    api_reader = address_reuse.blockchain_reader.LocalBlockchainRPCReader(db)
+
 current_blockchain_height = int(api_reader.get_current_blockchain_block_height())
 
 num_blocks_remaining_to_process = current_blockchain_height - current_height_iterated

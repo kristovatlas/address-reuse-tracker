@@ -32,6 +32,7 @@ class BlockchainMode(IntEnum):
     REMOTE_API          = 1
     BITCOIND_RPC        = 2
 
+
 ###########
 # CLASSES #
 ###########
@@ -57,6 +58,7 @@ class Config:
     RPC_PASSWORD                        = None
     RPC_HOST                            = None
     RPC_PORT                            = None
+    OFFLINE_MODE                        = 0 #Default to online, don't change behavior.
     
     config_parser                       = None
     
@@ -118,6 +120,13 @@ class Config:
                     except ValueError:
                         msg = ('Invalid format for max_num_blocks_to_process_'
                                'per_run in config file.')
+                        log_and_die(msg)
+                    try: #Add parsing for Offline Mode selection.
+                        self.OFFLINE_MODE = int(
+                            self.config_parser.get('General',
+                                                   'offline'))
+                    except ValueError:
+                        msg = ('Invalid selection for offline mode')
                         log_and_die(msg)
         except ConfigParser.NoOptionError as e:
             log_and_die("Invalid config file: '%s'" % str(e))

@@ -399,7 +399,7 @@ class LocalBlockchainRPCReader(BlockExplorerReader):
                                     self.config.RPC_PORT))
 
     def get_current_blockchain_block_height(self):
-        raise NotImplementedError #TODO maybe... for now can use another class
+        return self.rpc_connection.getblockcount() #TODO: Error checking? - This should already be an integer.
 
     #Retreives a list of transactions at specified block height. Each tx
     #   will be formatted as a BCI-like tuple per
